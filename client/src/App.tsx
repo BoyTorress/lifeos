@@ -10,6 +10,7 @@ import UberPage from "@/pages/uber";
 import SettingsPage from "@/pages/settings";
 import HealthPage from "@/pages/health";
 import NotFound from "@/pages/not-found";
+import { useEffect } from "react";
 
 function Router() {
   return (
@@ -27,6 +28,15 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize theme on app load
+    const isDarkMode = localStorage.getItem("theme") === "dark" || 
+      (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>

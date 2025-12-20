@@ -55,59 +55,98 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 }
 
-/* Engineering / Dark Technical Theme */
+/* LIGHT MODE */
 :root {
+  --background: 0 0% 100%;
+  --foreground: 224 71% 4%;
+
+  --card: 0 0% 98%;
+  --card-foreground: 224 71% 4%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71% 4%;
+
+  --primary: 210 100% 50%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 13% 91%;
+  --secondary-foreground: 224 71% 4%;
+
+  --muted: 220 13% 91%;
+  --muted-foreground: 215 16% 47%;
+
+  --accent: 220 13% 91%;
+  --accent-foreground: 210 100% 50%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 210 100% 50%;
+
+  --radius: 0.5rem;
+
+  --sidebar: 220 40% 96%;
+  --sidebar-foreground: 224 71% 4%;
+  --sidebar-primary: 210 100% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 210 100% 95%;
+  --sidebar-accent-foreground: 210 100% 50%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 210 100% 50%;
+  
+  --chart-1: 210 100% 50%;
+  --chart-2: 160 84% 39%;
+  --chart-3: 45 93% 51%;
+  --chart-4: 280 85% 50%;
+  --chart-5: 16 92% 54%;
+}
+
+/* DARK MODE */
+.dark {
   --background: 224 71% 4%;
   --foreground: 213 31% 91%;
 
-  --card: 224 71% 4%;
+  --card: 216 34% 17%;
   --card-foreground: 213 31% 91%;
 
   --popover: 224 71% 4%;
-  --popover-foreground: 215 20.2% 65.1%;
+  --popover-foreground: 215 20% 65%;
 
-  --primary: 210 100% 50%; /* Electric Blue */
+  --primary: 210 100% 50%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 222 47% 11%;
   --secondary-foreground: 210 40% 98%;
 
   --muted: 223 47% 11%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted-foreground: 215 20% 65%;
 
-  --accent: 216 34% 17%;
+  --accent: 216 34% 27%;
   --accent-foreground: 210 40% 98%;
 
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
 
   --border: 216 34% 17%;
   --input: 216 34% 17%;
-  --ring: 216 34% 17%;
-
-  --radius: 0.5rem;
+  --ring: 210 100% 50%;
 
   --sidebar: 224 71% 4%;
-  --sidebar-foreground: 215 20.2% 65.1%;
+  --sidebar-foreground: 215 20% 65%;
   --sidebar-primary: 210 100% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 216 34% 17%;
+  --sidebar-accent: 216 34% 27%;
   --sidebar-accent-foreground: 210 40% 98%;
   --sidebar-border: 216 34% 17%;
-  --sidebar-ring: 216 34% 17%;
+  --sidebar-ring: 210 100% 50%;
   
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
-}
-
-.dark {
-  /* Same as root for this specific dark-first design, but kept for compatibility */
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
-  /* ... (rest mapped to root values in this specific design choice) */
+  --chart-1: 210 100% 50%;
+  --chart-2: 160 84% 39%;
+  --chart-3: 45 93% 51%;
+  --chart-4: 280 85% 50%;
+  --chart-5: 16 92% 54%;
 }
 
 @layer base {
@@ -115,7 +154,7 @@
     @apply border-border;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground transition-colors duration-300;
   }
   
   /* Custom scrollbar for technical feel */

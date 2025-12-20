@@ -6,6 +6,7 @@ type Settings = {
   carRentalWeekly: number;
   gasPrice: number;
   vehicleEfficiency: number; // km per liter
+  kmPerHour: number; // km per hour for precise fuel calculation
 };
 
 type AppContextType = {
@@ -19,6 +20,7 @@ const defaultSettings: Settings = {
   carRentalWeekly: 150000,
   gasPrice: 1300,
   vehicleEfficiency: 12, // default guess
+  kmPerHour: 25, // default km/h
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

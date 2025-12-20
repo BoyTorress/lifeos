@@ -65,7 +65,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Operación Uber</CardTitle>
-          <CardDescription>Variables para el cálculo de ganancias.</CardDescription>
+          <CardDescription>Variables para el cálculo de ganancias precisas.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
@@ -77,6 +77,9 @@ export default function SettingsPage() {
               onChange={(e) => setFormData({...formData, carRentalWeekly: Number(e.target.value)})} 
             />
           </div>
+          
+          <Separator />
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="gas">Precio Bencina ($/L)</Label>
@@ -92,10 +95,23 @@ export default function SettingsPage() {
               <Input 
                 id="efficiency" 
                 type="number" 
+                step="0.5"
                 value={formData.vehicleEfficiency} 
                 onChange={(e) => setFormData({...formData, vehicleEfficiency: Number(e.target.value)})} 
               />
             </div>
+          </div>
+
+          <div className="grid gap-2 pt-2">
+            <Label htmlFor="kmh">Velocidad Promedio de Conducción (km/h)</Label>
+            <Input 
+              id="kmh" 
+              type="number" 
+              step="0.5"
+              value={formData.kmPerHour} 
+              onChange={(e) => setFormData({...formData, kmPerHour: Number(e.target.value)})} 
+            />
+            <p className="text-xs text-muted-foreground">Esto afecta el cálculo de combustible basado en horas trabajadas.</p>
           </div>
         </CardContent>
       </Card>
