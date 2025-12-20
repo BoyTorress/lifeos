@@ -17,7 +17,7 @@ export default function UberPage() {
   // Daily Calculation State
   const [grossIncome, setGrossIncome] = useState<string>("");
   const [hoursWorked, setHoursWorked] = useState<string>("");
-  const [localKmPerHour, setLocalKmPerHour] = useState<string>(settings.kmPerHour.toString());
+  const [localKmPerHour, setLocalKmPerHour] = useState<string>((settings.kmPerHour ?? 25).toString());
   
   // Calculate fixed daily cost
   const monthlyFixed = settings.rent + settings.debt;
