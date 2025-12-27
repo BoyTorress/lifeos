@@ -11,32 +11,38 @@ import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+
 export default function UberPage() {
   const { settings, updateSettings } = useApp();
-  
+  const { toast } = useToast();
+
   // Daily Calculation State
   const [grossIncome, setGrossIncome] = useState<string>("");
   const [hoursWorked, setHoursWorked] = useState<string>("");
   const [localKmPerHour, setLocalKmPerHour] = useState<string>((settings.kmPerHour ?? 25).toString());
-  
+
   // Calculate fixed daily cost
   const monthlyFixed = settings.rent + settings.debt;
   const weeklyCar = settings.carRentalWeekly;
   const dailyFixedCost = (monthlyFixed / 30) + (weeklyCar / 7);
-  
+
   const calculateProfit = () => {
     const gross = parseFloat(grossIncome) || 0;
     const hours = parseFloat(hoursWorked) || 0;
     const kmh = parseFloat(localKmPerHour) || 25;
-    
+
     // Calculate fuel cost based on hours worked
     const kmDriven = hours * kmh;
     const litersUsed = kmDriven / (settings.vehicleEfficiency || 12);
     const fuel = litersUsed * settings.gasPrice;
-    
+
     const tax = gross * 0.14; // 14% SII retention
     const trueProfit = gross - tax - fuel - dailyFixedCost;
-    
+
     return {
       gross,
       hours,
@@ -50,9 +56,48 @@ export default function UberPage() {
     };
   };
 
+  const registerShiftMutation = useMutation({
+    mutationFn: async () => {
+      const stats = calculateProfit();
+      const res = await apiRequest("POST", "/api/shifts", {
+        hours: stats.hours,
+        grossIncome: stats.gross,
+        kmDriven: stats.kmDriven,
+        expenses: {
+          fuel: stats.fuel,
+          tax: stats.tax,
+          fixed: stats.fixed,
+          net: stats.net
+        }
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Turno Registrado",
+        description: "Los datos han sido guardados correctamente.",
+      });
+      setGrossIncome("");
+      setHoursWorked("");
+      queryClient.invalidateQueries({ queryKey: ["/api/shifts"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo registrar el turno.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const { data: shiftHistory } = useQuery({
+    queryKey: ["/api/shifts"],
+  });
+
+
   const stats = calculateProfit();
   const isProfitable = stats.net > 0;
-  
+
   // Pie chart data
   const costBreakdown = [
     { name: "Costo Fijo", value: Math.round(stats.fixed), color: "var(--chart-1)" },
@@ -90,10 +135,10 @@ export default function UberPage() {
               <Label htmlFor="gross" className="text-sm">Ingresos Brutos (App)</Label>
               <div className="relative">
                 <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="gross" 
-                  className="pl-9 font-mono text-sm" 
-                  placeholder="0" 
+                <Input
+                  id="gross"
+                  className="pl-9 font-mono text-sm"
+                  placeholder="0"
                   value={grossIncome}
                   onChange={(e) => setGrossIncome(e.target.value)}
                   type="number"
@@ -105,10 +150,10 @@ export default function UberPage() {
               <Label htmlFor="hours" className="text-sm">Horas Trabajadas</Label>
               <div className="relative">
                 <Gauge className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="hours" 
-                  className="pl-9 font-mono text-sm" 
-                  placeholder="0" 
+                <Input
+                  id="hours"
+                  className="pl-9 font-mono text-sm"
+                  placeholder="0"
                   value={hoursWorked}
                   onChange={(e) => setHoursWorked(e.target.value)}
                   type="number"
@@ -119,10 +164,10 @@ export default function UberPage() {
 
             <div className="space-y-2">
               <Label htmlFor="kmh" className="text-sm">Km/Hora Promedio</Label>
-              <Input 
-                id="kmh" 
-                className="font-mono text-sm" 
-                placeholder="25" 
+              <Input
+                id="kmh"
+                className="font-mono text-sm"
+                placeholder="25"
                 value={localKmPerHour}
                 onChange={(e) => setLocalKmPerHour(e.target.value)}
                 type="number"
@@ -139,6 +184,13 @@ export default function UberPage() {
                 ${Math.round(dailyFixedCost).toLocaleString()}
               </AlertDescription>
             </Alert>
+            <Button
+              className="w-full"
+              onClick={() => registerShiftMutation.mutate()}
+              disabled={!grossIncome || !hoursWorked || registerShiftMutation.isPending}
+            >
+              {registerShiftMutation.isPending ? "Registrando..." : "Registrar Turno"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -156,7 +208,7 @@ export default function UberPage() {
               <span className="text-muted-foreground">Bruto</span>
               <span className="font-mono">${stats.gross.toLocaleString()}</span>
             </div>
-            
+
             <div className="space-y-1 py-2 border-y border-border">
               <div className="flex justify-between text-rose-400/80">
                 <span className="text-xs">Impuesto (14%)</span>
