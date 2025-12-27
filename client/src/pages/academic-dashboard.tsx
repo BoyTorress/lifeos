@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, BookOpen, TrendingUp, Award } from "lucide-react";
+import { GraduationCap, BookOpen, TrendingUp, Award, Plus, ShoppingCart, AlertCircle, Upload } from "lucide-react";
 
 type AcademicStats = {
     gpa: number;
@@ -26,6 +28,312 @@ type Enrollment = {
     status: string;
     finalGrade: number | null;
 };
+
+type AcademicCourse = {
+    id: number;
+    code: string;
+    name: string;
+    credits: number;
+    semester: number;
+};
+
+// Import Data System Component
+function ImportDataSystem() {
+    const { toast } = useToast();
+    const [jsonData, setJsonData] = useState("");
+
+    const importMutation = useMutation({
+        mutationFn: async (records: any[]) => {
+            const res = await fetch("/api/academic/import", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ records })
+            });
+            if (!res.ok) throw new Error("Import failed");
+            return res.json();
+        },
+        onSuccess: (data) => {
+            toast({
+                title: "Importación Exitosa",
+                description: `Se importaron ${data.imported} registros correctamente.`
+            });
+            setJsonData("");
+            queryClient.invalidateQueries({ queryKey: ["/api/academic/enrollments"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/academic/stats"] });
+        },
+        onError: () => {
+            toast({
+                title: "Error al Importar",
+                description: "Verifica el formato de los datos.",
+                variant: "destructive"
+            });
+        }
+    });
+
+    const handleImport = () => {
+        try {
+            const parsed = JSON.parse(jsonData);
+            const records = Array.isArray(parsed) ? parsed : [parsed];
+            importMutation.mutate(records);
+        } catch (error) {
+            toast({
+                title: "Error de Formato",
+                description: "Los datos deben estar en formato JSON válido.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Importar Historial Académico
+                </CardTitle>
+                <CardDescription>
+                    Carga masiva de datos históricos en formato JSON
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Datos JSON</label>
+                    <Textarea
+                        placeholder='[{"courseCode": "INF111", "academicPeriod": "2023-1", "status": "aprobado", "finalGrade": 6.2}]'
+                        value={jsonData}
+                        onChange={(e) => setJsonData(e.target.value)}
+                        className="min-h-[300px] font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Formato: Array de objetos con courseCode, academicPeriod, status, finalGrade
+                    </p>
+                </div>
+
+                <Button
+                    className="w-full"
+                    onClick={handleImport}
+                    disabled={!jsonData || importMutation.isPending}
+                >
+                    {importMutation.isPending ? "Importando..." : "Importar Datos"}
+                </Button>
+
+                <div className="p-4 bg-muted rounded-md">
+                    <p className="text-sm font-medium mb-2">Ejemplo de formato:</p>
+                    <pre className="text-xs overflow-x-auto">
+                        {`[
+  {
+    "courseCode": "INF111",
+    "academicPeriod": "2023-1",
+    "status": "aprobado",
+    "finalGrade": 6.2
+  },
+  {
+    "courseCode": "INF121",
+    "academicPeriod": "2023-1",
+    "status": "aprobado",
+    "finalGrade": 4.1
+  }
+]`}
+                    </pre>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+// Enrollment System Component
+function EnrollmentSystem({ activePeriod }: { activePeriod: string }) {
+    const { toast } = useToast();
+    const [cart, setCart] = useState<string[]>([]);
+    const [semesterFilter, setSemesterFilter] = useState<string>("all");
+
+    const { data: catalog = [] } = useQuery<AcademicCourse[]>({
+        queryKey: ["/api/academic/catalog"],
+    });
+
+    const { data: currentEnrollments = [] } = useQuery<Enrollment[]>({
+        queryKey: ["/api/academic/enrollments", { period: activePeriod }],
+        queryFn: async () => {
+            const res = await fetch(`/api/academic/enrollments?period=${activePeriod}`);
+            return res.json();
+        }
+    });
+
+    const enrollMutation = useMutation({
+        mutationFn: async (courseCode: string) => {
+            const res = await fetch("/api/academic/enroll", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    courseCode,
+                    academicPeriod: activePeriod
+                })
+            });
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || "Enrollment failed");
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            toast({ title: "Ramo Inscrito", description: "El ramo se agregó correctamente." });
+            setCart([]);
+            queryClient.invalidateQueries({ queryKey: ["/api/academic/enrollments"] });
+        },
+        onError: (error: Error) => {
+            toast({
+                title: "Error al Inscribir",
+                description: error.message,
+                variant: "destructive"
+            });
+        }
+    });
+
+    const enrolledCodes = currentEnrollments.map(e => e.courseCode);
+    const availableCourses = catalog.filter(c => !enrolledCodes.includes(c.code));
+    const filteredCourses = semesterFilter === "all"
+        ? availableCourses
+        : availableCourses.filter(c => c.semester === parseInt(semesterFilter));
+
+    const cartCourses = cart.map(code => catalog.find(c => c.code === code)!).filter(Boolean);
+    const totalCreditsInCart = cartCourses.reduce((sum, c) => sum + c.credits, 0);
+    const currentCredits = currentEnrollments.reduce((sum, e) => {
+        const course = catalog.find(c => c.code === e.courseCode);
+        return sum + (course?.credits || 0);
+    }, 0);
+    const totalCredits = currentCredits + totalCreditsInCart;
+    const isOverLimit = totalCredits > 32;
+
+    const addToCart = (code: string) => {
+        if (!cart.includes(code)) {
+            setCart([...cart, code]);
+        }
+    };
+
+    const removeFromCart = (code: string) => {
+        setCart(cart.filter(c => c !== code));
+    };
+
+    const handleEnrollAll = async () => {
+        for (const code of cart) {
+            await enrollMutation.mutateAsync(code);
+        }
+    };
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Catálogo de Ramos</CardTitle>
+                    <CardDescription>Ramos disponibles para {activePeriod}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                        <Input
+                            type="number"
+                            placeholder="Filtrar por semestre..."
+                            value={semesterFilter === "all" ? "" : semesterFilter}
+                            onChange={(e) => setSemesterFilter(e.target.value || "all")}
+                            className="max-w-xs"
+                        />
+                        <Button variant="outline" onClick={() => setSemesterFilter("all")}>
+                            Todos
+                        </Button>
+                    </div>
+
+                    {filteredCourses.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No hay ramos disponibles.</p>
+                    ) : (
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                            {filteredCourses.map((course) => (
+                                <div
+                                    key={course.code}
+                                    className="flex items-center justify-between p-3 border rounded-md"
+                                >
+                                    <div className="flex-1">
+                                        <p className="font-medium text-sm">{course.code}</p>
+                                        <p className="text-xs text-muted-foreground">{course.name}</p>
+                                        <Badge variant="secondary" className="mt-1 text-xs">
+                                            {course.credits} créditos
+                                        </Badge>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => addToCart(course.code)}
+                                        disabled={cart.includes(course.code)}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5" />
+                        Inscripción ({activePeriod})
+                    </CardTitle>
+                    <CardDescription>
+                        Créditos actuales: {currentCredits} | En carrito: {totalCreditsInCart} | Total: {totalCredits}/32
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {isOverLimit && (
+                        <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive rounded-md">
+                            <AlertCircle className="w-4 h-4 text-destructive" />
+                            <p className="text-sm text-destructive">
+                                Límite de 32 créditos excedido
+                            </p>
+                        </div>
+                    )}
+
+                    <Progress value={(totalCredits / 32) * 100} className="h-2" />
+
+                    {cart.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                            Agrega ramos desde el catálogo para inscribirlos.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {cartCourses.map((course) => (
+                                <div
+                                    key={course.code}
+                                    className="flex items-center justify-between p-2 border rounded-md"
+                                >
+                                    <div>
+                                        <p className="font-medium text-sm">{course.code}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {course.credits} créditos
+                                        </p>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => removeFromCart(course.code)}
+                                    >
+                                        Quitar
+                                    </Button>
+                                </div>
+                            ))}
+
+                            <Button
+                                className="w-full mt-4"
+                                onClick={handleEnrollAll}
+                                disabled={isOverLimit || enrollMutation.isPending}
+                            >
+                                {enrollMutation.isPending ? "Inscribiendo..." : "Confirmar Inscripción"}
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
 
 export default function AcademicDashboard() {
     const { toast } = useToast();
@@ -175,17 +483,9 @@ export default function AcademicDashboard() {
                     </Card>
                 </TabsContent>
 
-                {/* Enrollment Tab - Placeholder */}
-                <TabsContent value="enrollment">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Toma de Ramos</CardTitle>
-                            <CardDescription>Sistema de inscripción - En construcción</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">Próximamente: Sistema de inscripción con límite de 32 créditos</p>
-                        </CardContent>
-                    </Card>
+                {/* Enrollment Tab */}
+                <TabsContent value="enrollment" className="space-y-4">
+                    <EnrollmentSystem activePeriod={activePeriod} />
                 </TabsContent>
 
                 {/* History Tab */}
@@ -235,17 +535,9 @@ export default function AcademicDashboard() {
                     </Card>
                 </TabsContent>
 
-                {/* Import Tab - Placeholder */}
+                {/* Import Tab */}
                 <TabsContent value="import">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Importar Historial Académico</CardTitle>
-                            <CardDescription>Carga masiva de datos históricos</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">Próximamente: Herramienta de importación de datos desde archivo o texto</p>
-                        </CardContent>
-                    </Card>
+                    <ImportDataSystem />
                 </TabsContent>
             </Tabs>
         </div>
