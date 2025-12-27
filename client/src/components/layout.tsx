@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Resumen", icon: LayoutDashboard, href: "/" },
-  { label: "Universidad", icon: GraduationCap, href: "/university" },
+  { label: "Universidad", icon: GraduationCap, href: "/academic" },
   { label: "Uber & Finanzas", icon: Car, href: "/uber" },
   { label: "Salud & Gym", icon: Dumbbell, href: "/health" },
   { label: "Ajustes", icon: Settings, href: "/settings" },
@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    const isDarkMode = localStorage.getItem("theme") === "dark" || 
+    const isDarkMode = localStorage.getItem("theme") === "dark" ||
       (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
     setIsDark(isDarkMode);
     updateTheme(isDarkMode);
@@ -53,17 +53,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Ingeniería Civil Informática</p>
       </div>
-      
+
       <nav className="flex-1 p-4 space-y-2">
         {NAV_ITEMS.map((item) => {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>
-              <a 
+              <a
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
-                  isActive 
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
                 )}
                 onClick={() => setOpen(false)}
@@ -77,16 +77,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </nav>
 
       <div className="p-4 space-y-3 border-t border-sidebar-border">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={toggleTheme}
           className="w-full justify-start"
         >
           {isDark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
           {isDark ? "Modo Claro" : "Modo Oscuro"}
         </Button>
-        
+
         <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-sidebar-accent/30">
           <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
             <User className="w-4 h-4" />
